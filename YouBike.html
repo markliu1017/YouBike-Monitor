@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>桃園 YouBike 特定站點監測</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .station-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 300px; }
+    .number { font-size: 24px; font-weight: bold; color: #ff9900; }
+  </style>
+</head>
+<body>
+
+  <div class="station-card">
+    <h2 id="station-name">載入中...</h2>
+    <p>可借車輛：<span id="sbi" class="number">-</span> 台</p>
+    <p>可還空位：<span id="bemp" class="number">-</span> 格</p>
+    <p style="font-size: 12px; color: #888;">最後更新時間：<span id="update-time">-</span></p>
+  </div>
+
+  <script>
+    // 桃園市政府開放資料 API 網址 (JSON 格式)
+    const apiUrl = 'https://data.tycg.gov.tw/api/v1/rest/datastore/a1b4714b-3b75-4ff8-a8f2-cc377e4eaa0f?format=json';
+    
+    // 你想監控的特定站點名稱 (請輸入完整站名)
+    const targetStationName = '中壢火車站(前站)';
+
+    async function fetchYoubikeData() {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        // 開放平台的資料通常包在 result.records 陣列中
+        const records = data.result.records;
+        
+        // 從成百上千個站點中，找出我們指定的那一站
+        const station = records.find(s => s.sna === targetStationName);
+        
+        if (station) {
+          // 將抓到的最新數字更新到 HTML 網頁上
+          document.getElementById('station-name').innerText = station.sna;
+          document.getElementById('sbi').innerText = station.sbi;       // sbi: 目前車輛數量
+          document.getElementById('bemp').innerText = station.bemp;     // bemp: 空位數量
+          
+          // 格式化一下時間顯示
+          const now = new Date();
+          document.getElementById('update-time').innerText = now.toLocaleTimeString();
+        } else {
+          document.getElementById('station-name').innerText = '找不到該站點';
+        }
+      } catch (error) {
+        console.error('資料抓取失敗:', error);
+      }
+    }
+
+    // 網頁剛打開時，立刻抓取一次資料
+    fetchYoubikeData();
+    
+    // 設定計時器，每 60,000 毫秒 (1分鐘) 自動在背景重新抓取一次資料
+    setInterval(fetchYoubikeData, 60000);
+  </script>
+
+</body>
+</html>
