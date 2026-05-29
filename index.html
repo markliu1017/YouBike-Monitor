@@ -12,53 +12,50 @@
 <body>
 
   <div class="station-card">
-    <h2 id="station-name">載入中...</h2>
+    <h2 id="station-name">連線中...</h2>
     <p>可借車輛：<span id="sbi" class="number">-</span> 台</p>
     <p>可還空位：<span id="bemp" class="number">-</span> 格</p>
     <p style="font-size: 12px; color: #888;">最後更新時間：<span id="update-time">-</span></p>
   </div>
 
   <script>
-    // 桃園市政府開放資料 API 網址 (JSON 格式)
-    const apiUrl = 'https://data.tycg.gov.tw/api/v1/rest/datastore/a1b4714b-3b75-4ff8-a8f2-cc377e4eaa0f?format=json';
+    // 升級 1：使用新的 opendata 網址
+    // 升級 2：在網址最前面套用一個免費的代理伺服器 (allorigins)，用來強制作弊繞過政府 API 的 CORS 防火牆阻擋
+    const targetApi = 'https://opendata.tycg.gov.tw/api/v1/rest/datastore/a1b4714b-3b75-4ff8-a8f2-cc377e4eaa0f?format=json';
+    const apiUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetApi);
     
-    // 你想監控的特定站點名稱 (請輸入完整站名)
-    const targetStationName = '中壢火車站(前站)';
+    // 你想監控的特定站點名稱（建議只打關鍵字，例如「中壢火車站」）
+    const targetStationName = '中壢火車站'; 
 
     async function fetchYoubikeData() {
       try {
         const response = await fetch(apiUrl);
         const data = await response.json();
         
-        // 開放平台的資料通常包在 result.records 陣列中
         const records = data.result.records;
         
-        // 從成百上千個站點中，找出我們指定的那一站
-        const station = records.find(s => s.sna === targetStationName);
+        // 升級 3：把 === 改成 .includes()，這樣就算官方加上 "YouBike2.0_" 前綴也抓得到
+        const station = records.find(s => s.sna.includes(targetStationName));
         
         if (station) {
-          // 將抓到的最新數字更新到 HTML 網頁上
           document.getElementById('station-name').innerText = station.sna;
-          document.getElementById('sbi').innerText = station.sbi;       // sbi: 目前車輛數量
-          document.getElementById('bemp').innerText = station.bemp;     // bemp: 空位數量
+          document.getElementById('sbi').innerText = station.sbi;       
+          document.getElementById('bemp').innerText = station.bemp;     
           
-          // 格式化一下時間顯示
           const now = new Date();
           document.getElementById('update-time').innerText = now.toLocaleTimeString();
         } else {
-          document.getElementById('station-name').innerText = '找不到該站點';
+          document.getElementById('station-name').innerText = '找不到包含該關鍵字的站點';
         }
       } catch (error) {
         console.error('資料抓取失敗:', error);
+        document.getElementById('station-name').innerText = '伺服器連線失敗';
       }
     }
 
-    // 網頁剛打開時，立刻抓取一次資料
     fetchYoubikeData();
-    
-    // 設定計時器，每 60,000 毫秒 (1分鐘) 自動在背景重新抓取一次資料
     setInterval(fetchYoubikeData, 60000);
   </script>
 
 </body>
-</html> 
+</html>
